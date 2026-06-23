@@ -17,7 +17,21 @@ class HealthServiceProvider extends ServiceProvider
             return;
         }
 
-        Health::checks(config('health.checks', []));
+        $checks = [];
+
+        foreach (config('health.checks', []) as $checkConfig) {
+            !is_array($checkConfig) && $checkConfig = [$checkConfig];
+            $methods = isset($checkConfig[1]) ? $checkConfig[1] : [];
+            $frequency = isset($checkConfig[2]) ? $checkConfig[2] : null;
+            $check = app($checkConfig[0]);
+            foreach ($methods as $method => $args) {
+                call_user_func_array([$check, $method], is_array($args) ? $args : [$args]);
+            }
+            !is_null($frequency) && call_user_func_array([$check, $frequency], []);
+            $checks[] = $check;
+        }
+
+        Health::checks($checks);
     }
 
     /**

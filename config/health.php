@@ -183,31 +183,36 @@ return [
      * You can specify a list of checks to run.
      */
     'checks' => [
-        DatabaseCheck::new(),
-        RedisCheck::new(),
-        UsedDiskSpaceCheck::new()
-            ->warnWhenUsedSpaceIsAbovePercentage(85)
-            ->failWhenUsedSpaceIsAbovePercentage(95),
-        DatabaseConnectionCountCheck::new()
-            ->warnWhenMoreConnectionsThan(2000)
-            ->failWhenMoreConnectionsThan(5000),
-        CpuLoadCheck::new()
-            ->warnWhenLoadIsIncreasing(3.0) // 系统负载剧增超过3倍
-            ->topProcessesLimit(5), // Top5 进程
-        RequestCheck::new()
-            ->warnWhenRpsIsIncreases(3) // 每秒请求数剧增超过3倍
-            ->warnWhenDurationIsIncreases(10), // 请求响应时间剧增超过10倍
-        PhpFpmCheck::new()
-            ->statusUrl('http://localhost/fpm-status')
-            ->warnWhenActiveProcessesIsAbovePercentOfMaxChildren(80)
-            ->failWhenActiveProcessesIsAbovePercentOfMaxChildren(95)
-            ->warnWhenListenQueueIsAbove(5)
-            ->failWhenListenQueueIsAbove(10)
-            ->warnWhenSlowRequestsIsAbove(5)
-            ->failWhenSlowRequestsIsAbove(10),
-        LogCheck::new()
-            ->failWhenErrorLogsAbove(0) // 有错误日志
-            ->warnWhenWarningLogsIsAbove(100) // 警告日志超过100条
-            ->everyFifteenMinutes(), // 15分钟一次
+        DatabaseCheck::class,
+        RedisCheck::class,
+        [UsedDiskSpaceCheck::class, [
+            'warnWhenUsedSpaceIsAbovePercentage' => 85,
+            'failWhenUsedSpaceIsAbovePercentage' => 95,
+        ]],
+        [DatabaseConnectionCountCheck::class, [
+            'warnWhenMoreConnectionsThan' => 2000,
+            'failWhenMoreConnectionsThan' => 5000,
+        ]],
+        [CpuLoadCheck::class, [
+            'warnWhenLoadIsIncreasing' => 3.0, // 系统负载剧增超过3倍
+            'topProcessesLimit' => 5, // Top5 进程
+        ]],
+        [RequestCheck::class, [
+            'warnWhenRpsIsIncreases' => 3, // 每秒请求数剧增超过3倍
+            'warnWhenDurationIsIncreases' => 10, // 请求响应时间剧增超过10倍
+        ]],
+        [PhpFpmCheck::class, [
+            'statusUrl' => 'http://localhost/fpm-status',
+            'warnWhenActiveProcessesIsAbovePercentOfMaxChildren' => 80,
+            'failWhenActiveProcessesIsAbovePercentOfMaxChildren' => 95,
+            'warnWhenListenQueueIsAbove' => 5,
+            'failWhenListenQueueIsAbove' => 10,
+            'warnWhenSlowRequestsIsAbove' => 5,
+            'failWhenSlowRequestsIsAbove' => 10,
+        ]],
+        [LogCheck::class, [
+            'failWhenErrorLogsAbove' => 0, // 有错误日志
+            'warnWhenWarningLogsIsAbove' => 100, // 警告日志超过100条
+        ], 'everyFifteenMinutes'], // 15分钟一次
     ],
 ];
