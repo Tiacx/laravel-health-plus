@@ -160,6 +160,20 @@ Schedule::command(RunHealthChecksCommand::class)->everyMinute();
 | `errorLogs` | 程序异常：{logs} | `{logs}` - 错误日志JSON |
 | `warningLogs` | WARNING日志过多({count}条)，建议检查 | `{count}` - 警告数量 |
 
+### PhpFpmCheck 消息模板
+
+| Key | 默认值 | 参数 |
+|-----|-------|------|
+| `fetchFailed` | 无法访问 PHP-FPM 状态页面：{error} | `{error}` - 错误信息 |
+| `httpError` | PHP-FPM 状态页面响应错误（HTTP {status}） | `{status}` - HTTP 状态码 |
+| `invalidResponse` | PHP-FPM 状态页面内容无效... | - |
+| `activePercentFail` | 活动进程数占比 {percent}% 超过阈值 {threshold}% | `{percent}` - 占比, `{threshold}` - 阈值 |
+| `activePercentWarn` | 活动进程数占比 {percent}% 超过阈值 {threshold}% | `{percent}` - 占比, `{threshold}` - 阈值 |
+| `activeProcessesFail` | 活动进程数 ({active}) 超过上限 ({limit}) | `{active}` - 当前值, `{limit}` - 上限 |
+| `idleProcessesFail` | 空闲进程数 ({idle}) 低于最小值 ({limit}) | `{idle}` - 当前值, `{limit}` - 下限 |
+| `slowRequestsFail` | 慢请求数 {count} 超过阈值 {limit} | `{count}` - 当前值, `{limit}` - 阈值 |
+| `listenQueueFail` | 监听队列长度 {size} 超过允许值 {limit} | `{size}` - 当前值, `{limit}` - 上限 |
+
 ## 更多说明
 
 请参考 [spatie/laravel-health 官方文档](https://spatie.be/docs/laravel-health/v1/introduction)。

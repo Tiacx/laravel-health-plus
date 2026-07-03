@@ -20,10 +20,7 @@ class LogCheck extends Check
     protected ?int $warnWhenWarningLogsAbove = null; // 警告日志阈值
     protected int $maxErrorLogsInNotification = 10; // 通知中最多显示的错误日志条数
 
-    /**
-     * 默认消息模板
-     * @var array<string, string>
-     */
+    /** @var array<string, string> */
     protected array $messageTemplates = [
         'fetchFailed' => '无法获取错误日志：{error}',
         'errorLogs' => '程序异常：{logs}',

@@ -15,10 +15,7 @@ class RequestCheck extends Check
 
     protected ?float $warnWhenDurationIncreasesRatio = null;
 
-    /**
-     * 默认消息模板
-     * @var array<string, string>
-     */
+    /** @var array<string, string> */
     protected array $messageTemplates = [
         'fetchFailed' => '无法获取请求日志：{error}',
         'emptyData' => '请求日志数据为空',

@@ -220,6 +220,17 @@ return [
             'failWhenListenQueueIsAbove' => 10,
             'warnWhenSlowRequestsIsAbove' => 5,
             'failWhenSlowRequestsIsAbove' => 10,
+            'messages' => [
+                'fetchFailed' => '无法访问 PHP-FPM 状态页面：{error}',
+                'httpError' => 'PHP-FPM 状态页面响应错误（HTTP {status}）',
+                'invalidResponse' => "PHP-FPM 状态页面内容无效，请检查 pm.status_path 配置",
+                'activePercentFail' => '活动进程数占比 {percent}% 超过阈值 {threshold}%',
+                'activePercentWarn' => '活动进程数占比 {percent}% 超过阈值 {threshold}%',
+                'activeProcessesFail' => '活动进程数 ({active}) 超过上限 ({limit})',
+                'idleProcessesFail' => '空闲进程数 ({idle}) 低于最小值 ({limit})',
+                'slowRequestsFail' => '慢请求数 {count} 超过阈值 {limit}',
+                'listenQueueFail' => '监听队列长度 {size} 超过允许值 {limit}',
+            ],
         ]],
         [LogCheck::class, [
             'failWhenErrorLogsAbove' => 0, // 有错误日志

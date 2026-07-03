@@ -6,10 +6,26 @@ use Exception;
 use Illuminate\Support\Facades\Http;
 use Spatie\Health\Checks\Check;
 use Spatie\Health\Checks\Result;
+use Tiacx\Health\Traits\HasMessages;
 
 class PhpFpmCheck extends Check
 {
+    use HasMessages;
+
     protected string $statusUrl = 'http://localhost/status?plain';
+
+    /** @var array<string, string> */
+    protected array $messageTemplates = [
+        'fetchFailed' => '无法访问 PHP-FPM 状态页面：{error}',
+        'httpError' => 'PHP-FPM 状态页面响应错误（HTTP {status}）',
+        'invalidResponse' => "PHP-FPM 状态页面内容无效，未获取到 'pool' 字段，请检查 pm.status_path 配置",
+        'activePercentFail' => '活动进程数占比 {percent}% 超过阈值 {threshold}%',
+        'activePercentWarn' => '活动进程数占比 {percent}% 超过阈值 {threshold}%',
+        'activeProcessesFail' => '活动进程数 ({active}) 超过了允许的上限 ({limit})',
+        'idleProcessesFail' => '空闲进程数 ({idle}) 低于允许的最小值 ({limit})',
+        'slowRequestsFail' => '慢请求数 {count} 超过阈值 {limit}',
+        'listenQueueFail' => '监听队列长度 {size} 超过允许值 {limit}',
+    ];
 
     protected int $maxChildren = 40;
 
@@ -155,17 +171,17 @@ class PhpFpmCheck extends Check
         try {
             $response = Http::timeout(5)->get($this->statusUrl);
         } catch (Exception $e) {
-            return $result->failed("无法访问 PHP-FPM 状态页面：{$e->getMessage()}");
+            return $result->failed($this->getMessage('fetchFailed', ['error' => $e->getMessage()]));
         }
 
         if ($response->failed()) {
-            return $result->failed("PHP-FPM 状态页面响应错误（HTTP {$response->status()}）");
+            return $result->failed($this->getMessage('httpError', ['status' => $response->status()]));
         }
 
         $metrics = $this->parsePlainStatus($response->body());
 
         if (empty($metrics['pool'])) {
-            return $result->failed("PHP-FPM 状态页面内容无效，未获取到 'pool' 字段，请检查 pm.status_path 配置");
+            return $result->failed($this->getMessage('invalidResponse'));
         }
 
         $result->ok()
@@ -175,39 +191,53 @@ class PhpFpmCheck extends Check
         if ($this->failWhenActiveProcessesAbovePercentOfMaxChildren) {
             $activePercent = ($metrics['active_processes'] / $this->maxChildren) * 100;
             if ($activePercent > $this->failWhenActiveProcessesAbovePercentOfMaxChildren) {
-                return $result->failed("活动进程数占比 {$activePercent}% 超过阈值 {$this->failWhenActiveProcessesAbovePercentOfMaxChildren}%");
+                return $result->failed($this->getMessage('activePercentFail', [
+                    'percent' => round($activePercent, 1),
+                    'threshold' => $this->failWhenActiveProcessesAbovePercentOfMaxChildren,
+                ]));
             }
         }
 
         if ($this->warnWhenActiveProcessesAbovePercentOfMaxChildren) {
             $activePercent = ($metrics['active_processes'] / $this->maxChildren) * 100;
             if ($activePercent > $this->warnWhenActiveProcessesAbovePercentOfMaxChildren) {
-                return $result->warning("活动进程数占比 {$activePercent}% 超过阈值 {$this->warnWhenActiveProcessesAbovePercentOfMaxChildren}%");
+                return $result->warning($this->getMessage('activePercentWarn', [
+                    'percent' => round($activePercent, 1),
+                    'threshold' => $this->warnWhenActiveProcessesAbovePercentOfMaxChildren,
+                ]));
             }
         }
 
         if ($this->failWhenActiveProcessesAbove !== null) {
             if ($metrics['active_processes'] > $this->failWhenActiveProcessesAbove) {
-                return $result->failed(
-                    "活动进程数 ({$metrics['active_processes']}) 超过了允许的上限 ({$this->failWhenActiveProcessesAbove})"
-                );
+                return $result->failed($this->getMessage('activeProcessesFail', [
+                    'active' => $metrics['active_processes'],
+                    'limit' => $this->failWhenActiveProcessesAbove,
+                ]));
             }
         }
 
         if ($this->failWhenIdleProcessesBelow !== null) {
             if ($metrics['idle_processes'] < $this->failWhenIdleProcessesBelow) {
-                return $result->failed(
-                    "空闲进程数 ({$metrics['idle_processes']}) 低于允许的最小值 ({$this->failWhenIdleProcessesBelow})"
-                );
+                return $result->failed($this->getMessage('idleProcessesFail', [
+                    'idle' => $metrics['idle_processes'],
+                    'limit' => $this->failWhenIdleProcessesBelow,
+                ]));
             }
         }
 
         if ($this->failWhenSlowRequestsAbove !== null && ($metrics['slow_requests'] ?? 0) > $this->failWhenSlowRequestsAbove) {
-            return $result->failed("慢请求数 {$metrics['slow_requests']} 超过阈值 {$this->failWhenSlowRequestsAbove}");
+            return $result->failed($this->getMessage('slowRequestsFail', [
+                'count' => $metrics['slow_requests'],
+                'limit' => $this->failWhenSlowRequestsAbove,
+            ]));
         }
 
         if ($this->failWhenListenQueueAbove !== null && ($metrics['listen_queue'] ?? 0) > $this->failWhenListenQueueAbove) {
-            return $result->failed("监听队列长度 {$metrics['listen_queue']} 超过允许值 {$this->failWhenListenQueueAbove}");
+            return $result->failed($this->getMessage('listenQueueFail', [
+                'size' => $metrics['listen_queue'],
+                'limit' => $this->failWhenListenQueueAbove,
+            ]));
         }
 
         return $result;

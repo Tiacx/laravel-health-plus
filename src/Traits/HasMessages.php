@@ -5,13 +5,7 @@ namespace Tiacx\Health\Traits;
 trait HasMessages
 {
     /**
-     * 消息模板配置
-     * @var array<string, string>
-     */
-    protected array $messageTemplates = [];
-
-    /**
-     * 设置消息模板
+     * 设置消息模板（合并到现有模板）
      * @param array<string, string> $messages
      * @return $this
      */

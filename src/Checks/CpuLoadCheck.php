@@ -19,10 +19,7 @@ class CpuLoadCheck extends Check
     protected string $cpuStatPath = '/sys/fs/cgroup/cpuacct/cpuacct.stat';
     protected ?int $systemHz = null;
 
-    /**
-     * 默认消息模板
-     * @var array<string, string>
-     */
+    /** @var array<string, string> */
     protected array $messageTemplates = [
         'loadAbove' => 'CPU使用率超过阈值：{value}%%',
         'loadIncreasing' => 'CPU使用率急剧上升, ratio: {ratio}',
