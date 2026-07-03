@@ -196,13 +196,24 @@ return [
         [CpuLoadCheck::class, [
             'warnWhenLoadIsIncreasing' => 3.0, // 系统负载剧增超过3倍
             'topProcessesLimit' => 5, // Top5 进程
+            'messages' => [
+                'loadAbove' => 'CPU使用率超过阈值：{value}%%',
+                'loadIncreasing' => 'CPU使用率急剧上升, ratio: {ratio}',
+            ],
         ]],
         [RequestCheck::class, [
             'warnWhenRpsIsIncreases' => 3, // 每秒请求数剧增超过3倍
             'warnWhenDurationIsIncreases' => 10, // 请求响应时间剧增超过10倍
+            'messages' => [
+                'fetchFailed' => '无法获取请求日志：{error}',
+                'emptyData' => '请求日志数据为空',
+                'rpsIncrease' => '突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h}',
+                'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms',
+            ],
         ]],
         [PhpFpmCheck::class, [
             'statusUrl' => 'http://localhost/fpm-status',
+            'maxChildren' => env('FPM_PM_MAX_CHILDREN', 40),
             'warnWhenActiveProcessesIsAbovePercentOfMaxChildren' => 80,
             'failWhenActiveProcessesIsAbovePercentOfMaxChildren' => 95,
             'warnWhenListenQueueIsAbove' => 5,
@@ -213,6 +224,11 @@ return [
         [LogCheck::class, [
             'failWhenErrorLogsAbove' => 0, // 有错误日志
             'warnWhenWarningLogsIsAbove' => 100, // 警告日志超过100条
+            'messages' => [
+                'fetchFailed' => '无法获取错误日志：{error}',
+                'errorLogs' => '程序异常：{logs}',
+                'warningLogs' => 'WARNING日志过多({count}条)，建议检查',
+            ],
         ], 'everyFifteenMinutes'], // 15分钟一次
     ],
 ];

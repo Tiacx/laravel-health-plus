@@ -11,6 +11,8 @@ class PhpFpmCheck extends Check
 {
     protected string $statusUrl = 'http://localhost/status?plain';
 
+    protected int $maxChildren = 40;
+
     protected ?int $failWhenActiveProcessesAbove = null;
 
     protected ?int $failWhenIdleProcessesBelow = null;
@@ -19,7 +21,6 @@ class PhpFpmCheck extends Check
 
     protected ?int $failWhenActiveProcessesAbovePercentOfMaxChildren = null;
 
-    protected bool $failWhenMaxChildrenReached = true;
 
     protected ?int $warnWhenSlowRequestsAbove = null;
 
@@ -35,6 +36,16 @@ class PhpFpmCheck extends Check
     public function statusUrl(string $url): self
     {
         $this->statusUrl = $url;
+
+        return $this;
+    }
+
+    /**
+     * 设置 PHP-FPM 最大进程数
+     */
+    public function maxChildren(int $limit): self
+    {
+        $this->maxChildren = $limit;
 
         return $this;
     }
@@ -161,21 +172,15 @@ class PhpFpmCheck extends Check
             ->shortSummary("Pool: {$metrics['pool']}, Active: {$metrics['active_processes']}, Idle: {$metrics['idle_processes']}")
             ->meta($metrics);
 
-        if ($this->failWhenMaxChildrenReached && ($metrics['max_children_reached'] ?? 0) > 0) {
-            return $result->failed("已达到 max_children 限制，发生过 {$metrics['max_children_reached']} 次");
-        }
-
-        $maxChildren = env('FPM_PM_MAX_CHILDREN', 5);
-
-        if ($this->failWhenActiveProcessesAbovePercentOfMaxChildren && isset($maxChildren)) {
-            $activePercent = ($metrics['active_processes'] / $maxChildren) * 100;
+        if ($this->failWhenActiveProcessesAbovePercentOfMaxChildren) {
+            $activePercent = ($metrics['active_processes'] / $this->maxChildren) * 100;
             if ($activePercent > $this->failWhenActiveProcessesAbovePercentOfMaxChildren) {
                 return $result->failed("活动进程数占比 {$activePercent}% 超过阈值 {$this->failWhenActiveProcessesAbovePercentOfMaxChildren}%");
             }
         }
 
-        if ($this->warnWhenActiveProcessesAbovePercentOfMaxChildren && isset($maxChildren)) {
-            $activePercent = ($metrics['active_processes'] / $maxChildren) * 100;
+        if ($this->warnWhenActiveProcessesAbovePercentOfMaxChildren) {
+            $activePercent = ($metrics['active_processes'] / $this->maxChildren) * 100;
             if ($activePercent > $this->warnWhenActiveProcessesAbovePercentOfMaxChildren) {
                 return $result->warning("活动进程数占比 {$activePercent}% 超过阈值 {$this->warnWhenActiveProcessesAbovePercentOfMaxChildren}%");
             }
