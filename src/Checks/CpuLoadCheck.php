@@ -6,15 +6,24 @@ use Spatie\Health\Checks\Check;
 use Spatie\Health\Checks\Result;
 use Spatie\Health\Models\HealthCheckResultHistoryItem;
 use Symfony\Component\Process\Process;
+use Tiacx\Health\Traits\HasMessages;
 
 class CpuLoadCheck extends Check
 {
+    use HasMessages;
+
     protected ?float $warnWhenLoadIncreasesRatio = null; // 增加倍数
     protected ?int $warnWhenLoadAbove = null; // 负载值
     protected float $absoluteIncreaseThreshold = 15.0; // 百分比绝对值，默认 15%
     protected int $topProcessesLimit = 5;
     protected string $cpuStatPath = '/sys/fs/cgroup/cpuacct/cpuacct.stat';
     protected ?int $systemHz = null;
+
+    /** @var array<string, string> */
+    protected array $messageTemplates = [
+        'loadAbove' => 'CPU使用率超过阈值：{value}%%',
+        'loadIncreasing' => 'CPU使用率急剧上升, ratio: {ratio}',
+    ];
 
     /**
      * 设置 CPU 使用率统计路径
@@ -102,10 +111,11 @@ class CpuLoadCheck extends Check
         $ratio = $currentUsage / max($lastUsage, 0.01);
         $absoluteIncrease = $currentUsage - $lastUsage;
 
-        $result->shortSummary(sprintf('Last: %.2f%%，Current: %.2f%%', $lastUsage, $currentUsage));
+        $result->shortSummary(sprintf('Last: %.2f%%, Current: %.2f%%', $lastUsage, $currentUsage));
 
+        // 负载绝对值告警
         if (!is_null($this->warnWhenLoadAbove) && $currentUsage >= $this->warnWhenLoadAbove) {
-            $result->warning(sprintf('CPU使用率超过阈值：%d%%', $this->warnWhenLoadAbove));
+            $result->warning($this->getMessage('loadAbove', ['value' => $this->warnWhenLoadAbove]));
             $topProcesses = $this->getTopCpuProcesses($this->topProcessesLimit);
             if (!empty($topProcesses)) {
                 $result->appendMeta(['top_cpu_processes' => $topProcesses]);
@@ -113,11 +123,12 @@ class CpuLoadCheck extends Check
             return $result;
         }
 
+        // 负载急剧上升告警
         if (!is_null($this->warnWhenLoadIncreasesRatio) &&
             $ratio >= $this->warnWhenLoadIncreasesRatio &&
             $absoluteIncrease > $this->absoluteIncreaseThreshold
         ) {
-            $result->warning(sprintf('CPU使用率急剧上升, ratio: %.2f', $ratio));
+            $result->warning($this->getMessage('loadIncreasing', ['ratio' => round($ratio, 2)]));
             $topProcesses = $this->getTopCpuProcesses($this->topProcessesLimit);
             if (!empty($topProcesses)) {
                 $result->appendMeta(['top_cpu_processes' => $topProcesses]);
@@ -125,7 +136,7 @@ class CpuLoadCheck extends Check
             return $result;
         }
 
-        return $result;
+        return $result->ok();
     }
 
     /**

@@ -196,23 +196,50 @@ return [
         [CpuLoadCheck::class, [
             'warnWhenLoadIsIncreasing' => 3.0, // 系统负载剧增超过3倍
             'topProcessesLimit' => 5, // Top5 进程
+            'messages' => [
+                'loadAbove' => 'CPU使用率超过阈值：{value}%%',
+                'loadIncreasing' => 'CPU使用率急剧上升, ratio: {ratio}',
+            ],
         ]],
         [RequestCheck::class, [
             'warnWhenRpsIsIncreases' => 3, // 每秒请求数剧增超过3倍
             'warnWhenDurationIsIncreases' => 10, // 请求响应时间剧增超过10倍
+            'messages' => [
+                'fetchFailed' => '无法获取请求日志：{error}',
+                'emptyData' => '请求日志数据为空',
+                'rpsIncrease' => '突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h}',
+                'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms',
+            ],
         ]],
         [PhpFpmCheck::class, [
             'statusUrl' => 'http://localhost/fpm-status',
+            'maxChildren' => env('FPM_PM_MAX_CHILDREN', 40),
             'warnWhenActiveProcessesIsAbovePercentOfMaxChildren' => 80,
             'failWhenActiveProcessesIsAbovePercentOfMaxChildren' => 95,
             'warnWhenListenQueueIsAbove' => 5,
             'failWhenListenQueueIsAbove' => 10,
             'warnWhenSlowRequestsIsAbove' => 5,
             'failWhenSlowRequestsIsAbove' => 10,
+            'messages' => [
+                'fetchFailed' => '无法访问 PHP-FPM 状态页面：{error}',
+                'httpError' => 'PHP-FPM 状态页面响应错误（HTTP {status}）',
+                'invalidResponse' => "PHP-FPM 状态页面内容无效，请检查 pm.status_path 配置",
+                'activePercentFail' => '活动进程数占比 {percent}% 超过阈值 {threshold}%',
+                'activePercentWarn' => '活动进程数占比 {percent}% 超过阈值 {threshold}%',
+                'activeProcessesFail' => '活动进程数 ({active}) 超过上限 ({limit})',
+                'idleProcessesFail' => '空闲进程数 ({idle}) 低于最小值 ({limit})',
+                'slowRequestsFail' => '慢请求数 {count} 超过阈值 {limit}',
+                'listenQueueFail' => '监听队列长度 {size} 超过允许值 {limit}',
+            ],
         ]],
         [LogCheck::class, [
             'failWhenErrorLogsAbove' => 0, // 有错误日志
             'warnWhenWarningLogsIsAbove' => 100, // 警告日志超过100条
+            'messages' => [
+                'fetchFailed' => '无法获取错误日志：{error}',
+                'errorLogs' => '程序异常：{logs}',
+                'warningLogs' => 'WARNING日志过多({count}条)，建议检查',
+            ],
         ], 'everyFifteenMinutes'], // 15分钟一次
     ],
 ];
