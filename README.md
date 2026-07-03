@@ -47,11 +47,13 @@ php artisan vendor:publish --tag=health-plus-config
     [RequestCheck::class, [
         'warnWhenRpsIsIncreases' => 3, // 每秒请求数剧增超过3倍
         'warnWhenDurationIsIncreases' => 10, // 请求响应时间剧增超过10倍
+        'failWhenMaxDurationIsAbove' => 30, // 最大响应时长超过30秒判定为失败
         'messages' => [
             'fetchFailed' => '无法获取请求日志：{error}',
             'emptyData' => '请求日志数据为空',
             'rpsIncrease' => '突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h}',
             'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms',
+            'maxDurationFail' => '最大响应时长 {maxDuration}s 超过阈值 {threshold}s',
         ],
     ]],
     [PhpFpmCheck::class, [
@@ -151,6 +153,7 @@ Schedule::command(RunHealthChecksCommand::class)->everyMinute();
 | `emptyData` | 请求日志数据为空 | - |
 | `rpsIncrease` | 突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h} | `{rps5m}` - 5分钟RPS, `{rps1h}` - 1小时RPS |
 | `durationIncrease` | 响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms | 响应时间 |
+| `maxDurationFail` | 最大响应时长 {maxDuration}s 超过阈值 {threshold}s | `{maxDuration}` - 最大响应时长, `{threshold}` - 阈值 |
 
 ### LogCheck 消息模板
 

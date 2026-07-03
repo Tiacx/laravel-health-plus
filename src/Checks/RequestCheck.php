@@ -15,12 +15,15 @@ class RequestCheck extends Check
 
     protected ?float $warnWhenDurationIncreasesRatio = null;
 
+    protected ?int $failWhenMaxDurationAbove = null;
+
     /** @var array<string, string> */
     protected array $messageTemplates = [
         'fetchFailed' => '无法获取请求日志：{error}',
         'emptyData' => '请求日志数据为空',
         'rpsIncrease' => '突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h}',
         'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms',
+        'maxDurationFail' => '最大响应时长 {maxDuration}s 超过阈值 {threshold}s',
     ];
 
     public function warnWhenRpsIsIncreases(float $ratio): self
@@ -37,6 +40,18 @@ class RequestCheck extends Check
         return $this;
     }
 
+    /**
+     * 当最大响应时长超过指定阈值时判定为失败
+     * @param int $threshold 阈值，单位：秒
+     * @return $this
+     */
+    public function failWhenMaxDurationIsAbove(int $threshold): self
+    {
+        $this->failWhenMaxDurationAbove = $threshold;
+
+        return $this;
+    }
+
     public function run(): Result
     {
         $result = Result::make();
@@ -47,13 +62,13 @@ class RequestCheck extends Check
             $lastFiveMinutes = $service->getLogs(
                 time() - 300,
                 time(),
-                '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration from log'
+                '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration, max(duration) as max_duration from log'
             );
 
             $lastHour = $service->getLogs(
                 time() - 3600,
                 time(),
-                '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration from log'
+                '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration, max(duration) as max_duration from log'
             );
         } catch (Exception $e) {
             return $result->warning($this->getMessage('fetchFailed', ['error' => $e->getMessage()]));
@@ -66,12 +81,14 @@ class RequestCheck extends Check
         $pvOfLastFiveMinutes = intval(data_get($lastFiveMinutes, '0.pv', 0));
         $uvOfLastFiveMinutes = intval(data_get($lastFiveMinutes, '0.uv', 0));
         $avgDurationOfLastFiveMinutes = round(floatval(data_get($lastFiveMinutes, '0.avg_duration', 0)), 2);
+        $maxDurationOfLastFiveMinutes = intval(data_get($lastFiveMinutes, '0.max_duration', 0));
         $pvOfLastHour = intval(data_get($lastHour, '0.pv', 0));
         $uvOfLastHour = intval(data_get($lastHour, '0.uv', 0));
         $avgDurationOfLastHour = round(floatval(data_get($lastHour, '0.avg_duration', 0)), 2);
+        $maxDurationOfLastHour = intval(data_get($lastHour, '0.max_duration', 0));
 
         $result->ok()
-            ->shortSummary("Pv5m: $pvOfLastFiveMinutes, Uv5m: $uvOfLastFiveMinutes, AvgDuration5m: {$avgDurationOfLastFiveMinutes}ms")
+            ->shortSummary("Pv5m: $pvOfLastFiveMinutes, Uv5m: $uvOfLastFiveMinutes, AvgDuration5m: {$avgDurationOfLastFiveMinutes}ms, MaxDuration5m: {$maxDurationOfLastFiveMinutes}ms")
             ->meta([
                 'pv_5m' => $pvOfLastFiveMinutes,
                 'uv_5m' => $uvOfLastFiveMinutes,
@@ -79,6 +96,8 @@ class RequestCheck extends Check
                 'uv_1h' => $uvOfLastHour,
                 'avg_duration_5m' => $avgDurationOfLastFiveMinutes,
                 'avg_duration_1h' => $avgDurationOfLastHour,
+                'max_duration_5m' => $maxDurationOfLastFiveMinutes,
+                'max_duration_1h' => $maxDurationOfLastHour,
             ]);
 
         // RPS 计算
@@ -98,6 +117,14 @@ class RequestCheck extends Check
             return $result->warning($this->getMessage('durationIncrease', [
                 'duration5m' => $avgDurationOfLastFiveMinutes,
                 'duration1h' => $avgDurationOfLastHour,
+            ]));
+        }
+
+        // 最大响应时长告警（配置为秒，日志数据为毫秒）
+        if ($this->failWhenMaxDurationAbove !== null && $maxDurationOfLastFiveMinutes >= $this->failWhenMaxDurationAbove * 1000) {
+            return $result->failed($this->getMessage('maxDurationFail', [
+                'maxDuration' => round($maxDurationOfLastFiveMinutes / 1000, 2),
+                'threshold' => $this->failWhenMaxDurationAbove,
             ]));
         }
 
