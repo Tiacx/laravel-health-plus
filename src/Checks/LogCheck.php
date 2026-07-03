@@ -3,6 +3,7 @@
 namespace Tiacx\Health\Checks;
 
 use Exception;
+use Illuminate\Support\Str;
 use Spatie\Health\Checks\Check;
 use Spatie\Health\Checks\Result;
 use Spatie\Health\Enums\Status;
@@ -75,6 +76,7 @@ class LogCheck extends Check
             $context = json_decode($log['Context'] ?? '{}', true);
             $file = data_get($context, 'context.exception.file', '');
             $message = data_get($context, 'context.exception.message') ?: ($log['Message'] ?? '');
+            $message = Str::limit($message, 200, '...');
             return $file ? "$file | $message" : $message;
         }, $errorLogs);
 

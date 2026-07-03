@@ -15,7 +15,7 @@ class RequestCheck extends Check
 
     protected ?float $warnWhenDurationIncreasesRatio = null;
 
-    protected ?int $failWhenMaxDurationAbove = null;
+    protected ?int $warnWhenMaxDurationAbove = null;
 
     /** @var array<string, string> */
     protected array $messageTemplates = [
@@ -41,13 +41,13 @@ class RequestCheck extends Check
     }
 
     /**
-     * 当最大响应时长超过指定阈值时判定为失败
+     * 当最大响应时长超过指定阈值时告警
      * @param int $threshold 阈值，单位：秒
      * @return $this
      */
-    public function failWhenMaxDurationIsAbove(int $threshold): self
+    public function warnWhenMaxDurationIsAbove(int $threshold): self
     {
-        $this->failWhenMaxDurationAbove = $threshold;
+        $this->warnWhenMaxDurationAbove = $threshold;
 
         return $this;
     }
@@ -121,10 +121,10 @@ class RequestCheck extends Check
         }
 
         // 最大响应时长告警（配置为秒，日志数据为毫秒）
-        if ($this->failWhenMaxDurationAbove !== null && $maxDurationOfLastFiveMinutes >= $this->failWhenMaxDurationAbove * 1000) {
-            return $result->failed($this->getMessage('maxDurationFail', [
+        if ($this->warnWhenMaxDurationAbove !== null && $maxDurationOfLastFiveMinutes >= $this->warnWhenMaxDurationAbove * 1000) {
+            return $result->warning($this->getMessage('maxDurationFail', [
                 'maxDuration' => round($maxDurationOfLastFiveMinutes / 1000, 2),
-                'threshold' => $this->failWhenMaxDurationAbove,
+                'threshold' => $this->warnWhenMaxDurationAbove,
             ]));
         }
 

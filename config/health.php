@@ -204,7 +204,7 @@ return [
         [RequestCheck::class, [
             'warnWhenRpsIsIncreases' => 3, // 每秒请求数剧增超过3倍
             'warnWhenDurationIsIncreases' => 10, // 请求响应时间剧增超过10倍
-            'failWhenMaxDurationIsAbove' => 30, // 最大响应时长超过30秒判定为失败
+            'warnWhenMaxDurationIsAbove' => 30, // 最大响应时长超过30秒告警
             'messages' => [
                 'fetchFailed' => '无法获取请求日志：{error}',
                 'emptyData' => '请求日志数据为空',
