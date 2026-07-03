@@ -39,13 +39,24 @@ php artisan vendor:publish --tag=health-plus-config
     [CpuLoadCheck::class, [
         'warnWhenLoadIsIncreasing' => 3.0, // 系统负载剧增超过3倍
         'topProcessesLimit' => 5, // Top5 进程
+        'messages' => [
+            'loadAbove' => 'CPU使用率超过阈值：{value}%%',
+            'loadIncreasing' => 'CPU使用率急剧上升, ratio: {ratio}',
+        ],
     ]],
     [RequestCheck::class, [
         'warnWhenRpsIsIncreases' => 3, // 每秒请求数剧增超过3倍
         'warnWhenDurationIsIncreases' => 10, // 请求响应时间剧增超过10倍
+        'messages' => [
+            'fetchFailed' => '无法获取请求日志：{error}',
+            'emptyData' => '请求日志数据为空',
+            'rpsIncrease' => '突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h}',
+            'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms',
+        ],
     ]],
     [PhpFpmCheck::class, [
         'statusUrl' => 'http://localhost/fpm-status',
+        'maxChildren' => env('FPM_PM_MAX_CHILDREN', 40),
         'warnWhenActiveProcessesIsAbovePercentOfMaxChildren' => 80,
         'failWhenActiveProcessesIsAbovePercentOfMaxChildren' => 95,
         'warnWhenListenQueueIsAbove' => 5,
@@ -56,6 +67,11 @@ php artisan vendor:publish --tag=health-plus-config
     [LogCheck::class, [
         'failWhenErrorLogsAbove' => 0, // 有错误日志
         'warnWhenWarningLogsIsAbove' => 100, // 警告日志超过100条
+        'messages' => [
+            'fetchFailed' => '无法获取错误日志：{error}',
+            'errorLogs' => '程序异常：{logs}',
+            'warningLogs' => 'WARNING日志过多({count}条)，建议检查',
+        ],
     ], 'everyFifteenMinutes'], // 15分钟一次
 ],
 ```
@@ -115,6 +131,34 @@ $schedule->command(RunHealthChecksCommand::class)->everyMinute();
 ```php
 Schedule::command(RunHealthChecksCommand::class)->everyMinute();
 ```
+
+## 自定义告警消息
+
+支持多语言配置，通过 `messages` 配置项自定义各 Check 类的告警消息模板。模板使用 `{placeholder}` 占位符。
+
+### CpuLoadCheck 消息模板
+
+| Key | 默认值 | 参数 |
+|-----|-------|------|
+| `loadAbove` | CPU使用率超过阈值：{value}%% | `{value}` - 阈值 |
+| `loadIncreasing` | CPU使用率急剧上升, ratio: {ratio} | `{ratio}` - 增长倍数 |
+
+### RequestCheck 消息模板
+
+| Key | 默认值 | 参数 |
+|-----|-------|------|
+| `fetchFailed` | 无法获取请求日志：{error} | `{error}` - 错误信息 |
+| `emptyData` | 请求日志数据为空 | - |
+| `rpsIncrease` | 突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h} | `{rps5m}` - 5分钟RPS, `{rps1h}` - 1小时RPS |
+| `durationIncrease` | 响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms | 响应时间 |
+
+### LogCheck 消息模板
+
+| Key | 默认值 | 参数 |
+|-----|-------|------|
+| `fetchFailed` | 无法获取错误日志：{error} | `{error}` - 错误信息 |
+| `errorLogs` | 程序异常：{logs} | `{logs}` - 错误日志JSON |
+| `warningLogs` | WARNING日志过多({count}条)，建议检查 | `{count}` - 警告数量 |
 
 ## 更多说明
 
