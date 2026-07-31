@@ -75,7 +75,7 @@ class RequestCheck extends Check
         }
 
         if (empty($lastFiveMinutes) || empty($lastHour)) {
-            return $result->warning($this->getMessage('emptyData'));
+            return $result->ok()->shortSummary($this->getMessage('emptyData'));
         }
 
         $pvOfLastFiveMinutes = intval(data_get($lastFiveMinutes, '0.pv', 0));
