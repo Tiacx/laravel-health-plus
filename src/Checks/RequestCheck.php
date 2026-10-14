@@ -22,7 +22,7 @@ class RequestCheck extends Check
         'fetchFailed' => '无法获取请求日志：{error}',
         'emptyData' => '请求日志数据为空',
         'rpsIncrease' => '突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h}',
-        'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms',
+        'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}s, AvgDuration1h: {duration1h}s',
         'maxDurationFail' => '最大响应时长 {maxDuration}s 超过阈值 {threshold}s',
     ];
 
@@ -88,7 +88,7 @@ class RequestCheck extends Check
         $maxDurationOfLastHour = intval(data_get($lastHour, '0.max_duration', 0));
 
         $result->ok()
-            ->shortSummary("Pv5m: $pvOfLastFiveMinutes, Uv5m: $uvOfLastFiveMinutes, AvgDuration5m: {$avgDurationOfLastFiveMinutes}ms, MaxDuration5m: {$maxDurationOfLastFiveMinutes}ms")
+            ->shortSummary("Pv5m: $pvOfLastFiveMinutes, Uv5m: $uvOfLastFiveMinutes, AvgDuration5m: {$avgDurationOfLastFiveMinutes}s, MaxDuration5m: {$maxDurationOfLastFiveMinutes}s")
             ->meta([
                 'pv_5m' => $pvOfLastFiveMinutes,
                 'uv_5m' => $uvOfLastFiveMinutes,
