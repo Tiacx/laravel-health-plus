@@ -141,7 +141,7 @@ class LogCheck extends Check
 
     public function getLogs(string $query): array
     {
-        return app(\App\Services\AliyunLog\AliyunLogService::class)->getLogs(
+        return app(config('health.aliyun_log_service'))->getLogs(
             time() - ($this->timeRange * 60),
             time(),
             $query,

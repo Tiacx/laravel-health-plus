@@ -57,7 +57,7 @@ class RequestCheck extends Check
         $result = Result::make();
 
         try {
-            $service = app(\App\Services\AliyunLog\AliyunLogService::class);
+            $service = app(config('health.aliyun_log_service'));
 
             $lastFiveMinutes = $service->getLogs(
                 time() - 300,

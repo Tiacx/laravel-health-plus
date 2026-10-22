@@ -244,4 +244,6 @@ return [
             ],
         ], 'everyFifteenMinutes'], // 15分钟一次
     ],
+
+    'aliyun_log_service' => env('ALIYUN_LOG_SERVICE', \App\Services\AliyunLog\AliyunLogService::class),
 ];
