@@ -17,6 +17,12 @@ class RequestCheck extends Check
 
     protected ?int $warnWhenMaxDurationAbove = null;
 
+    protected string $requestLogsQuery = '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration, max(duration) as max_duration from log'; // 日志统计查询语句
+
+    protected int $shortWindow = 300; // 近期统计窗口，单位：秒
+
+    protected int $longWindow = 3600; // 长期对比窗口，单位：秒
+
     /** @var array<string, string> */
     protected array $messageTemplates = [
         'fetchFailed' => '无法获取请求日志：{error}',
@@ -52,6 +58,40 @@ class RequestCheck extends Check
         return $this;
     }
 
+    /**
+     * 设置日志统计查询语句
+     */
+    public function requestLogsQuery(string $query): self
+    {
+        $this->requestLogsQuery = $query;
+
+        return $this;
+    }
+
+    /**
+     * 设置近期统计窗口（当前值取自该窗口）
+     * @param int $seconds 窗口大小，单位：秒
+     * @return $this
+     */
+    public function shortWindow(int $seconds): self
+    {
+        $this->shortWindow = $seconds;
+
+        return $this;
+    }
+
+    /**
+     * 设置长期对比窗口（基线取自该窗口）
+     * @param int $seconds 窗口大小，单位：秒
+     * @return $this
+     */
+    public function longWindow(int $seconds): self
+    {
+        $this->longWindow = $seconds;
+
+        return $this;
+    }
+
     public function run(): Result
     {
         $result = Result::make();
@@ -60,15 +100,15 @@ class RequestCheck extends Check
             $service = app(config('health.aliyun_log_service'));
 
             $lastFiveMinutes = $service->getLogs(
-                time() - 300,
+                time() - $this->shortWindow,
                 time(),
-                '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration, max(duration) as max_duration from log'
+                $this->requestLogsQuery
             );
 
             $lastHour = $service->getLogs(
-                time() - 3600,
+                time() - $this->longWindow,
                 time(),
-                '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration, max(duration) as max_duration from log'
+                $this->requestLogsQuery
             );
         } catch (Exception $e) {
             return $result->warning($this->getMessage('fetchFailed', ['error' => $e->getMessage()]));
@@ -87,8 +127,10 @@ class RequestCheck extends Check
         $avgDurationOfLastHour = round(floatval(data_get($lastHour, '0.avg_duration', 0)), 2);
         $maxDurationOfLastHour = intval(data_get($lastHour, '0.max_duration', 0));
 
+        $shortLabel = $this->windowLabel($this->shortWindow);
+
         $result->ok()
-            ->shortSummary("Pv5m: $pvOfLastFiveMinutes, Uv5m: $uvOfLastFiveMinutes, AvgDuration5m: {$avgDurationOfLastFiveMinutes}s, MaxDuration5m: {$maxDurationOfLastFiveMinutes}s")
+            ->shortSummary("Pv{$shortLabel}: $pvOfLastFiveMinutes, Uv{$shortLabel}: $uvOfLastFiveMinutes, AvgDuration{$shortLabel}: {$avgDurationOfLastFiveMinutes}s, MaxDuration{$shortLabel}: {$maxDurationOfLastFiveMinutes}s")
             ->meta([
                 'pv_5m' => $pvOfLastFiveMinutes,
                 'uv_5m' => $uvOfLastFiveMinutes,
@@ -100,9 +142,9 @@ class RequestCheck extends Check
                 'max_duration_1h' => $maxDurationOfLastHour,
             ]);
 
-        // RPS 计算
-        $rpsOfLastFiveMinutes = round($pvOfLastFiveMinutes / 300, 2);
-        $rpsOfLastHour = round($pvOfLastHour / 3600, 2);
+        // RPS 计算（除数使用对应统计窗口）
+        $rpsOfLastFiveMinutes = round($pvOfLastFiveMinutes / $this->shortWindow, 2);
+        $rpsOfLastHour = round($pvOfLastHour / $this->longWindow, 2);
 
         // 突发流量激增
         if ($this->warnWhenRpsIncreasesRatio && $rpsOfLastFiveMinutes >= 10 && $rpsOfLastFiveMinutes > $rpsOfLastHour * $this->warnWhenRpsIncreasesRatio) {
@@ -129,5 +171,21 @@ class RequestCheck extends Check
         }
 
         return $result;
+    }
+
+    /**
+     * 将窗口秒数格式化为展示标签（如 300 → "5m"、3600 → "1h"）
+     */
+    protected function windowLabel(int $seconds): string
+    {
+        if ($seconds % 3600 === 0) {
+            return ($seconds / 3600) . 'h';
+        }
+
+        if ($seconds % 60 === 0) {
+            return ($seconds / 60) . 'm';
+        }
+
+        return $seconds . 's';
     }
 }

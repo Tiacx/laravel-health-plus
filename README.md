@@ -45,6 +45,9 @@ php artisan vendor:publish --tag=health-plus-config
         ],
     ]],
     [RequestCheck::class, [
+        'requestLogsQuery' => '*|select count(*) as pv, count(distinct userId) as uv, avg(duration) as avg_duration, max(duration) as max_duration from log',
+        'shortWindow' => 300, // 近期统计窗口，单位：秒
+        'longWindow' => 3600, // 长期对比窗口，单位：秒
         'warnWhenRpsIsIncreases' => 3, // 每秒请求数剧增超过3倍
         'warnWhenDurationIsIncreases' => 10, // 请求响应时间剧增超过10倍
         'warnWhenMaxDurationIsAbove' => 30, // 最大响应时长超过30秒告警
@@ -52,7 +55,7 @@ php artisan vendor:publish --tag=health-plus-config
             'fetchFailed' => '无法获取请求日志：{error}',
             'emptyData' => '请求日志数据为空',
             'rpsIncrease' => '突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h}',
-            'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms',
+            'durationIncrease' => '响应时间劣化, AvgDuration5m: {duration5m}s, AvgDuration1h: {duration1h}s',
             'maxDurationFail' => '最大响应时长 {maxDuration}s 超过阈值 {threshold}s',
         ],
     ]],
@@ -67,6 +70,8 @@ php artisan vendor:publish --tag=health-plus-config
         'failWhenSlowRequestsIsAbove' => 10,
     ]],
     [LogCheck::class, [
+        'errorLogsQuery' => 'LevelName:ERROR', // 错误日志查询语句
+        'warningLogsQuery' => 'LevelName:WARNING|select distinct Message from log limit 100', // 警告日志查询语句
         'failWhenErrorLogsAbove' => 0, // 有错误日志
         'warnWhenWarningLogsIsAbove' => 100, // 警告日志超过100条
         'messages' => [
@@ -152,7 +157,7 @@ Schedule::command(RunHealthChecksCommand::class)->everyMinute();
 | `fetchFailed` | 无法获取请求日志：{error} | `{error}` - 错误信息 |
 | `emptyData` | 请求日志数据为空 | - |
 | `rpsIncrease` | 突发流量激增, Rps5m: {rps5m}, Rps1h: {rps1h} | `{rps5m}` - 5分钟RPS, `{rps1h}` - 1小时RPS |
-| `durationIncrease` | 响应时间劣化, AvgDuration5m: {duration5m}ms, AvgDuration1h: {duration1h}ms | 响应时间 |
+| `durationIncrease` | 响应时间劣化, AvgDuration5m: {duration5m}s, AvgDuration1h: {duration1h}s | 响应时间 |
 | `maxDurationFail` | 最大响应时长 {maxDuration}s 超过阈值 {threshold}s | `{maxDuration}` - 最大响应时长, `{threshold}` - 阈值 |
 
 ### LogCheck 消息模板

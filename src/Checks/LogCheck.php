@@ -13,6 +13,9 @@ class LogCheck extends Check
 {
     use HasMessages;
 
+    /** Kibana Discover 查询 URL 默认模板（占位符：{host}、{from}、{to}、{index}） */
+    protected const DEFAULT_KIBANA_URL_TEMPLATE = '{host}/kibana/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:\'{from}\',to:\'{to}\'))&_a=(columns:!(Level,Message,Context.context.exception.file),filters:!(),hideChart:!t,index:\'{index}\',interval:auto,query:(language:kuery,query:\'LevelName%20:%20ERROR%20or%20LevelName%20:%20WARNING\'),sort:!((\'@timestamp\',desc)))';
+
     // 强制通知
     public bool $mustNotifyOnFailure = true;
 
@@ -20,6 +23,9 @@ class LogCheck extends Check
     protected int $failWhenErrorLogsAbove = 0; // 错误日志阈值
     protected ?int $warnWhenWarningLogsAbove = null; // 警告日志阈值
     protected int $maxErrorLogsInNotification = 10; // 通知中最多显示的错误日志条数
+    protected string $errorLogsQuery = 'LevelName:ERROR'; // 错误日志查询语句
+    protected string $warningLogsQuery = 'LevelName:WARNING|select distinct Message from log limit 100'; // 警告日志查询语句
+    protected ?string $kibanaUrlTemplate = null; // Kibana 查询 URL 模板，null 时使用默认模板
 
     /** @var array<string, string> */
     protected array $messageTemplates = [
@@ -59,6 +65,36 @@ class LogCheck extends Check
         return $this;
     }
 
+    /**
+     * 设置错误日志查询语句
+     */
+    public function errorLogsQuery(string $query): static
+    {
+        $this->errorLogsQuery = $query;
+
+        return $this;
+    }
+
+    /**
+     * 设置警告日志查询语句
+     */
+    public function warningLogsQuery(string $query): static
+    {
+        $this->warningLogsQuery = $query;
+
+        return $this;
+    }
+
+    /**
+     * 设置 Kibana 查询 URL 模板（占位符：{host}、{from}、{to}、{index}）
+     */
+    public function kibanaUrlTemplate(string $template): static
+    {
+        $this->kibanaUrlTemplate = $template;
+
+        return $this;
+    }
+
     public function run(): Result
     {
         $result = Result::make();
@@ -67,7 +103,7 @@ class LogCheck extends Check
         $notificationMessages = [];
 
         try {
-            $errorLogs = $this->getLogs('LevelName:ERROR');
+            $errorLogs = $this->getLogs($this->errorLogsQuery);
         } catch (Exception $e) {
             return $result->warning($this->getMessage('fetchFailed', ['error' => $e->getMessage()]));
         }
@@ -97,7 +133,7 @@ class LogCheck extends Check
         }
 
         try {
-            $warningLogs = $this->getLogs('LevelName:WARNING|select distinct Message from log limit 100');
+            $warningLogs = $this->getLogs($this->warningLogsQuery);
         } catch (Exception $e) {
             $warningLogs = [];
         }
@@ -121,9 +157,9 @@ class LogCheck extends Check
         $queryUrl = null;
 
         if ($kibanaHost && $kibanaIndex) {
-            $queryUrl = strtr("{host}/kibana/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:'{form}',to:'{to}'))&_a=(columns:!(Level,Message,Context.context.exception.file),filters:!(),hideChart:!t,index:'{index}',interval:auto,query:(language:kuery,query:'LevelName%20:%20ERROR%20or%20LevelName%20:%20WARNING'),sort:!(!('@timestamp',desc)))", [
+            $queryUrl = strtr($this->kibanaUrlTemplate ?? self::DEFAULT_KIBANA_URL_TEMPLATE, [
                 '{host}' => $kibanaHost,
-                '{form}' => now()->subMinutes(15)->toIso8601ZuluString(),
+                '{from}' => now()->subMinutes($this->timeRange)->toIso8601ZuluString(),
                 '{to}' => now()->toIso8601ZuluString(),
                 '{index}' => $kibanaIndex,
             ]);
