@@ -152,8 +152,8 @@ class LogCheck extends Check
         }
 
         // 构建查询 URL，处理配置缺失的情况
-        $kibanaHost = config('logging.channels.aliyun.kibana_host');
-        $kibanaIndex = config('logging.channels.aliyun.kibana_index');
+        $kibanaHost = config('health.aliyun_log.kibana_host');
+        $kibanaIndex = config('health.aliyun_log.kibana_index');
         $queryUrl = null;
 
         if ($kibanaHost && $kibanaIndex) {
@@ -181,7 +181,7 @@ class LogCheck extends Check
             time() - ($this->timeRange * 60),
             time(),
             $query,
-            store: config('logging.channels.aliyun.store_logging')
+            store: config('health.aliyun_log.store_logging')
         );
     }
 }

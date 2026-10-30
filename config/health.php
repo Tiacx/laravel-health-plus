@@ -251,4 +251,15 @@ return [
     ],
 
     'aliyun_log_service' => env('ALIYUN_LOG_SERVICE', \App\Services\AliyunLog\AliyunLogService::class),
+
+    /*
+     * 阿里云日志查询配置（LogCheck 使用）
+     */
+    'aliyun_log' => [
+        // 查询的日志库
+        'store_logging' => env('ALIYUN_LOG_STORE_ACCESS'),
+        // Kibana 地址与索引模式，两者同时配置时才会生成日志查询链接
+        'kibana_host' => env('ALIYUN_LOG_KIBANA_HOST', ''),
+        'kibana_index' => env('ALIYUN_LOG_KIBANA_INDEX', ''),
+    ],
 ];
