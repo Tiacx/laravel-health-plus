@@ -102,6 +102,28 @@ php artisan vendor:publish --tag=health-plus-config
 
 注：通过 `HEALTH_NOTIFICATION_WEBHOOK_URL` 环境变量来配置 Webhook URL。
 
+#### 配置阿里云日志服务：
+
+RequestCheck 与 LogCheck 通过阿里云日志服务（SLS）查询日志，需要在应用中实现日志服务类，并在 `config/health.php` 中配置：
+
+```php
+// 日志服务类，需在应用中实现 getLogs() 方法，默认为 App\Services\AliyunLog\AliyunLogService
+'aliyun_log_service' => env('ALIYUN_LOG_SERVICE', \App\Services\AliyunLog\AliyunLogService::class),
+
+// 阿里云日志查询配置（LogCheck 使用）
+'aliyun_log' => [
+    // 查询的日志库
+    'store_logging' => env('ALIYUN_LOG_STORE_ACCESS'),
+    // Kibana 地址与索引模式，两者同时配置时才会生成日志查询链接
+    'kibana_host' => env('ALIYUN_LOG_KIBANA_HOST', ''),
+    'kibana_index' => env('ALIYUN_LOG_KIBANA_INDEX', ''),
+],
+```
+
+注：
+- 日志服务类需提供 `getLogs(开始时间戳, 结束时间戳, 查询语句, store: 日志库)` 方法，返回日志数组
+- `kibana_host` 与 `kibana_index` 同时配置后，LogCheck 的检查结果会附带 Kibana 查询链接（`query_url`），通知消息中可直接点击查看日志详情
+
 #### 其他可用 `Check` 类：
 
 https://spatie.be/docs/laravel-health/v1/available-checks/overview
